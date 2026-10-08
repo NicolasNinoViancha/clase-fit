@@ -11,8 +11,22 @@ runs exactly as it will against the real API.
 
 ---
 
+## Demo
+
+A recorded walkthrough of the app running on a development build:
+
+[▶ **assets/videos/app_test.mov**](assets/videos/app_test.mov) · 18 MB
+
+<video src="https://raw.githubusercontent.com/NicolasNinoViancha/clase-fit/main/assets/videos/app_test.mov" controls width="320"></video>
+
+> The link opens GitHub's video player. Inline playback depends on the browser —
+> `.mov` is a QuickTime container, so Safari handles it best.
+
+---
+
 ## Table of contents
 
+- [Demo](#demo)
 - [Stack](#stack)
 - [Getting started](#getting-started)
 - [Commands](#commands)
