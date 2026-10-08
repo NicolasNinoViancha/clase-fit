@@ -24,7 +24,9 @@ Everything shared that relates to **data models and configuration**:
 - Entities shared across features.
 - Library configuration and custom SDK clients: media picker, video, Firebase,
   Supabase, Zustand, i18n, etc.
-- `core/httpClient/` — the project's single HTTP client (see §6).
+- `core/httpClient/` — the project's single HTTP client (see §7).
+- `core/config/` — library configuration (`query.client.ts`) and the build-time
+  environment variables (`env.constants.ts`, see §7.1).
 
 Contains no UI.
 
@@ -473,20 +475,32 @@ The project's single HTTP client. Depends on `axios` (`1.10.0`).
 
 ```txt
 core/httpClient/
-├── index.ts                 # exports the class (singleton instance)
-├── http.client.ts
+├── index.ts                   # exports the instance, both classes and the models
+├── http.client.factory.ts     # builds the instance consumed by the whole app
+├── http.client.ts             # axios implementation
 ├── http.client.models.ts
-└── http.client.error.ts
+├── http.client.error.ts
+└── fake/                      # simulated client, used while IS_DEV_MODE is on
+    ├── http.client.fake.ts
+    ├── fake.responses.ts      # endpoint → response function registry
+    └── fake.<endpoint>.ts     # one file per faked endpoint
 ```
+
+Neither class self-instantiates. `http.client.factory.ts` picks the transport
+from `IS_DEV_MODE` and exports the single instance; `index.ts` re-exports it.
+Consumers import `httpClient` and type against
+`HttpClientModels.HttpClient`, so swapping the transport never reaches a
+repository.
 
 ### `http.client.ts`
 
 ```ts
 import axios, { AxiosInstance, AxiosResponse } from "axios";
+import { ENV_API_URL } from "@/core/config/env.constants";
 import { HttpClientModels } from "./http.client.models";
 import { HttpClientError } from "./http.client.error";
 
-class HttpClient implements HttpClientModels.HttpClient {
+export class HttpClient implements HttpClientModels.HttpClient {
   private _fetchInstance: AxiosInstance;
   private readonly _TIME_OUT = 5000;
 
@@ -507,6 +521,10 @@ class HttpClient implements HttpClientModels.HttpClient {
     throw new HttpClientError({ message: error?.message });
   }
 
+  private _makeUrl(url: string): string {
+    return `${ENV_API_URL}${url}`;
+  }
+
   async request<TResponse = any, TResquest = HttpClientModels.ParamsRequest>({
     url,
     method,
@@ -517,7 +535,7 @@ class HttpClient implements HttpClientModels.HttpClient {
     validateStatus,
   }: HttpClientModels.Request<TResquest>): Promise<TResponse> {
     const response = await this._fetchInstance.request({
-      url,
+      url: this._makeUrl(url),
       method,
       data,
       headers,
@@ -528,8 +546,6 @@ class HttpClient implements HttpClientModels.HttpClient {
     return response.data;
   }
 }
-
-export default new HttpClient();
 ```
 
 ### `http.client.models.ts`
@@ -563,6 +579,10 @@ export namespace HttpClientModels {
       data: Request<TRequest>,
     ): Promise<TResponse>;
   }
+
+  export type FakeResponse<TRequest = any, TResponse = any> = (
+    request: Request<TRequest>,
+  ) => TResponse;
 }
 ```
 
@@ -585,6 +605,77 @@ export class HttpClientError extends Error {
   }
 }
 ```
+
+### `fake/`
+
+`HttpClientFake` implements the same `HttpClientModels.HttpClient` contract, but
+resolves a request through the function registered for its url in
+`fake.responses.ts` instead of reaching the network. Rules:
+
+- One file per endpoint, `fake.<endpoint>.ts`, exporting a
+  `HttpClientModels.FakeResponse`. It **validates the request** (method, params,
+  body) and throws `HttpClientError` on invalid input, so a consumer cannot tell
+  the two transports apart.
+- A fake response returns the **DTO shape**, never a domain entity: the adapters
+  downstream must run exactly as they do in production.
+- An url with no registered response throws — the fake never resolves silently.
+- The latency in `_LATENCY` is deliberate: loading states must behave like they
+  do against the real API.
+
+## 7.1 Environment variables
+
+`src/core/config/env.constants.ts` is the **only** place that reads
+`process.env`. Everything else imports the exported constants.
+
+```ts
+export const ENV_API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
+export const IS_DEV_MODE = process.env.EXPO_PUBLIC_IS_DEV_MODE === "true";
+```
+
+`babel-preset-expo` rewrites every `process.env.EXPO_PUBLIC_*` read at bundle
+time — in SDK 57 into the `expo/virtual/env` module, resolved from the `.env`
+files — and that imposes the rules this file follows:
+
+- **Only the `EXPO_PUBLIC_` prefix is exposed to the app.** A variable without it
+  is left as a plain `process.env` read, available to the Expo CLI and the app
+  config but `undefined` at runtime. Code inside `node_modules` is never
+  rewritten.
+- **Read them with dot notation.** The Expo docs require static
+  `process.env.EXPO_PUBLIC_X`. The SDK 57 preset happens to also rewrite
+  `process.env["EXPO_PUBLIC_X"]` and destructuring, but that is not guaranteed
+  by the docs — do not rely on it.
+- **Values are always strings**, so a boolean is parsed with `=== "true"`; a cast
+  would make the string `"false"` truthy.
+- **The values ship in plain text** inside the app — never a secret.
+- Editing a `.env` file needs a full app reload; a hot reload keeps the value
+  already resolved.
+
+### Where each value lives
+
+| File / source   | Committed      | Seen by EAS Build | Use                         |
+| --------------- | -------------- | ----------------- | --------------------------- |
+| `.env`          | **gitignored** | **no**            | the app's variables, local  |
+| `.env.local`    | **gitignored** | **no**            | overrides `.env`            |
+| EAS env vars    | —              | yes               | real per-environment values |
+| `.env.template` | yes            | —                 | reference of every variable |
+
+`.gitignore` ignores `.env*` and un-ignores `.env.template`, so **no value is
+ever versioned**. Two consequences:
+
+1. A fresh clone has no `.env`. Copying `.env.template` to `.env` and filling it
+   in is part of the setup — without it `ENV_API_URL` falls back to `""` and
+   every request goes out with a relative url.
+2. **EAS Build receives no `.env` file at all**, because nothing gitignored is
+   uploaded to the build job. Every variable a cloud build needs must exist as
+   an EAS environment variable (`eas env:set`, referenced by `environment` in
+   `eas.json`, pulled locally with `eas env:pull`). A variable that lives only
+   in `.env` silently resolves to the `?? ""` fallback in a build.
+
+Expo loads these with standard dotenv resolution, so `.env.local` overrides
+`.env`.
+
+`app.config.js` `extra` + `expo-constants` is the legacy approach and is no
+longer recommended; read the variable directly instead.
 
 ## 8. End-to-end flow of one action
 
