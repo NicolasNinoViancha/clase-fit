@@ -1,12 +1,6 @@
 import { HttpClientError } from "../http.client.error";
 import { HttpClientModels } from "../http.client.models";
 
-/**
- * @doc Fake response for `/users`. It answers with the raw backend shape (DTO),
- * @doc never with a domain entity, so the adapters downstream run exactly as
- * @doc they do against the real API.
- */
-
 const FAKE_USERS = [
   {
     id: "1",

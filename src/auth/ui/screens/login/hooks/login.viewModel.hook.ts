@@ -37,7 +37,6 @@ export function useLoginViewModel(): LoginScreenModels.ViewModel {
     }
 
     setError(null);
-    //@doc: the root guards mount `(app)` as soon as the session changes, so there is no manual navigation here
     setSession(DEMO_SESSION);
   }
 
