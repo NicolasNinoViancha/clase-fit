@@ -1,6 +1,21 @@
 import { GymClasses } from "@/home/domain/entities/GymClasses.entity";
 
-import { SCHEDULE_DAY_OFFSETS } from "./home.constants";
+import { BOOKING_COPY, SCHEDULE_DAY_OFFSETS } from "./home.constants";
+
+const BOOKING_ERROR_MESSAGES: Record<GymClasses.BOOKING_ERROR, string> = {
+  [GymClasses.BOOKING_ERROR.ALREADY_BOOKED]: BOOKING_COPY.alreadyBooked,
+  [GymClasses.BOOKING_ERROR.NO_SPOTS]: BOOKING_COPY.noSpots,
+  [GymClasses.BOOKING_ERROR.DAILY_LIMIT]: BOOKING_COPY.dailyLimit,
+};
+
+export function resolveBookingMessage(error: unknown): string {
+  const reason = error instanceof Error ? error.message : "";
+
+  return (
+    BOOKING_ERROR_MESSAGES[reason as GymClasses.BOOKING_ERROR] ??
+    BOOKING_COPY.failed
+  );
+}
 
 export function resolveStartsAt(
   dayOffset: number,

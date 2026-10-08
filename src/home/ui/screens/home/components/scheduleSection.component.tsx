@@ -9,10 +9,15 @@ import { SectionEmpty } from "./sectionEmpty.component";
 
 interface ScheduleSectionProps {
   section: HomeScreenModels.Section;
-  onReserve: () => void;
+  bookingGymClassId: string | null;
+  onReserve: (gymClassId: string) => void;
 }
 
-export function ScheduleSection({ section, onReserve }: ScheduleSectionProps) {
+export function ScheduleSection({
+  section,
+  bookingGymClassId,
+  onReserve,
+}: ScheduleSectionProps) {
   return (
     <View style={styles.section}>
       <View style={styles.heading}>
@@ -30,6 +35,7 @@ export function ScheduleSection({ section, onReserve }: ScheduleSectionProps) {
             key={gymClass.id}
             gymClass={gymClass}
             dayLabel={section.label}
+            bookingGymClassId={bookingGymClassId}
             onReserve={onReserve}
           />
         ))

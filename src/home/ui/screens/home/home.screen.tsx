@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ThemedBanner } from "@/shared/components/themed-banner";
 import { ThemedView } from "@/shared/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/shared/constants/theme";
 
@@ -8,18 +9,21 @@ import { HomeHeader } from "./components/homeHeader.component";
 import { ScheduleError } from "./components/scheduleError.component";
 import { ScheduleLoading } from "./components/scheduleLoading.component";
 import { ScheduleSection } from "./components/scheduleSection.component";
-import { useHomeViewModel } from "./hooks/home.viewModel.hook";
+import { useHomeViewModel } from "./hooks/useHomeViewModel.hook";
 
 export default function HomeScreen() {
   const {
     user,
     sections,
+    banner,
+    bookingGymClassId,
     isLoading,
     isError,
     hasGymClasses,
     onSignOut,
     onRetry,
     onReserve,
+    onDismissBanner,
   } = useHomeViewModel();
 
   const hasFailedWithNothingToShow = isError && !hasGymClasses;
@@ -51,10 +55,19 @@ export default function HomeScreen() {
               <ScheduleSection
                 key={section.dayOffset}
                 section={section}
+                bookingGymClassId={bookingGymClassId}
                 onReserve={onReserve}
               />
             ))}
           </ScrollView>
+        )}
+
+        {banner && (
+          <ThemedBanner
+            type={banner.type}
+            message={banner.message}
+            onDismiss={onDismissBanner}
+          />
         )}
       </SafeAreaView>
     </ThemedView>

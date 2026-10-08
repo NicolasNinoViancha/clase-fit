@@ -12,7 +12,7 @@ export function useGetListGymClasses() {
   const fetchedAt = useGymClasses((state) => state.fetchedAt);
   const setGymClasses = useGymClasses((state) => state.setGymClasses);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { isPending, isError, refetch } = useQuery({
     queryKey: [HOME_QUERY_KEYS.LIST_GYM_CLASSES],
     queryFn: async () => {
       const gymClasses =
@@ -22,18 +22,15 @@ export function useGetListGymClasses() {
 
       return gymClasses;
     },
-    select: selectUpcomingGymClasses,
   });
 
-  const storedUpcomingGymClasses = useMemo(
+  const gymClasses = useMemo(
     () =>
       isSameCalendarDay(fetchedAt)
         ? selectUpcomingGymClasses(storedGymClasses)
         : [],
     [fetchedAt, storedGymClasses],
   );
-
-  const gymClasses = data ?? storedUpcomingGymClasses;
 
   return {
     gymClasses,

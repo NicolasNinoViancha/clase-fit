@@ -5,6 +5,12 @@ export namespace GymClasses {
     DAY_AFTER_TOMORROW = 2,
   }
 
+  export enum BOOKING_ERROR {
+    ALREADY_BOOKED = "ALREADY_BOOKED",
+    NO_SPOTS = "NO_SPOTS",
+    DAILY_LIMIT = "DAILY_LIMIT",
+  }
+
   export interface Entity {
     id: string;
     name: string;
@@ -15,5 +21,6 @@ export namespace GymClasses {
     totalCapacity: number;
     occupied: number;
     isFull: boolean;
+    bookedUserIds: string[];
   }
 }

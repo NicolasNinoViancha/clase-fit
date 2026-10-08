@@ -11,15 +11,18 @@ import { HOME_COPY } from "../home.constants";
 interface GymClassCardProps {
   gymClass: GymClasses.Entity;
   dayLabel: string;
-  onReserve: () => void;
+  bookingGymClassId: string | null;
+  onReserve: (gymClassId: string) => void;
 }
 
 export function GymClassCard({
   gymClass,
   dayLabel,
+  bookingGymClassId,
   onReserve,
 }: GymClassCardProps) {
   const availableSpots = gymClass.totalCapacity - gymClass.occupied;
+  const isBooking = bookingGymClassId === gymClass.id;
 
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
@@ -48,8 +51,8 @@ export function GymClassCard({
       </ThemedText>
 
       <ThemedButton
-        disabled={gymClass.isFull}
-        onPress={onReserve}
+        disabled={gymClass.isFull || isBooking}
+        onPress={() => onReserve(gymClass.id)}
         style={styles.action}
       >
         {HOME_COPY.reserve}

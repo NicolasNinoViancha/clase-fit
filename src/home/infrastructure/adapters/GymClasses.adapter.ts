@@ -15,6 +15,7 @@ const GymClassesDtoSchema = z.object({
   duracionMin: z.number().int().positive(),
   cupoTotal: z.number().int().nonnegative(),
   ocupados: z.number().int().nonnegative(),
+  usuariosReservados: z.array(z.string()).default([]),
 });
 
 type GymClassesDtoValid = z.infer<typeof GymClassesDtoSchema>;
@@ -51,6 +52,7 @@ export class GymClassesAdapter {
       totalCapacity: dto.cupoTotal,
       occupied: dto.ocupados,
       isFull: dto.cupoTotal === dto.ocupados,
+      bookedUserIds: dto.usuariosReservados,
     };
   }
 }

@@ -8,5 +8,6 @@ export namespace GymClassesDTO {
     duracionMin?: number;
     cupoTotal?: number;
     ocupados?: number;
+    usuariosReservados?: string[];
   }
 }
