@@ -1,20 +1,6 @@
-import { HttpClientError } from "../http.client.error";
-import { HttpClientModels } from "../http.client.models";
-
-const FAKE_USERS = [
-  {
-    id: "1",
-    email: "admin@clasefit.com",
-    full_name: "Admin Clase Fit",
-    token: "fake-token-1",
-  },
-  {
-    id: "2",
-    email: "coach@clasefit.com",
-    full_name: "Coach Clase Fit",
-    token: "fake-token-2",
-  },
-];
+import { HttpClientError } from "../../../http.client.error";
+import { HttpClientModels } from "../../../http.client.models";
+import { FAKE_USERS } from "./users.data";
 
 export const usersResponse: HttpClientModels.FakeResponse = ({
   method,

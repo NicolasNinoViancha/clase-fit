@@ -1,11 +1,13 @@
 import { HttpClientModels } from "../http.client.models";
-import { gymClassesResponse } from "./fake.gymClasses";
-import { usersResponse } from "./fake.users";
+import { usersResponse } from "./auth/users/fake.users";
+import { bookGymClassResponse } from "./home/gymClasses/fake.bookGymClass";
+import { listGymClassesResponse } from "./home/gymClasses/fake.listGymClasses";
 
 export const FAKE_RESPONSES: Record<
   string,
   HttpClientModels.FakeResponse | undefined
 > = {
-  "/gymClasses": gymClassesResponse,
+  "/gymClasses": listGymClassesResponse,
+  "/gymClasses/book": bookGymClassResponse,
   "/users": usersResponse,
 };
