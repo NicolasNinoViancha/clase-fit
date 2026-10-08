@@ -7,6 +7,7 @@ export const DEMO_CREDENTIALS = {
 };
 
 export const DEMO_SESSION: SessionEntity.Entity = {
+  isAuth: true,
   user: {
     token: "demo-token",
     id: "1",

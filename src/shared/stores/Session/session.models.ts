@@ -2,7 +2,7 @@ import type { SessionEntity } from "@/core/entities/Session.entity";
 
 export namespace SessionStoreModels {
   export type State = {
-    session: SessionEntity.Entity | null;
+    session: SessionEntity.Entity;
   };
 
   type Action = {

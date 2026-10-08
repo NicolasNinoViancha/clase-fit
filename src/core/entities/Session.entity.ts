@@ -7,6 +7,7 @@ export namespace SessionEntity {
   }
 
   export interface Entity {
+    isAuth: boolean;
     user: User;
   }
 }

@@ -3,7 +3,7 @@ import { Redirect } from "expo-router";
 import { useSession } from "@/shared/hooks/useSession.hook";
 
 export default function Index() {
-  const session = useSession((state) => state.session);
+  const isAuth = useSession((state) => state.session.isAuth);
 
-  return <Redirect href={session ? "/home" : "/login"} />;
+  return <Redirect href={isAuth ? "/home" : "/login"} />;
 }

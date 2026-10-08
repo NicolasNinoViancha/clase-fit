@@ -23,15 +23,15 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const session = useSession((state) => state.session);
+  const isAuth = useSession((state) => state.session.isAuth);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={isAuth}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
 
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!isAuth}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
     </Stack>
