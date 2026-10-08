@@ -23,11 +23,45 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+## Architecture
+
+**Read `docs/architecture.md` before writing or moving any file under `src/`.** It is binding and contains the code templates for every layer. Summary:
+
+```txt
+src/
+├── core/        # cross-feature entities, library config, SDK clients — no UI
+├── shared/      # UI shared across features (design system, hooks, utils, theme)
+├── app/         # navigators + screen re-exports ONLY — no logic, no UI
+└── <feature>/
+    ├── domain/          # entities, repository contracts (CQRS), use cases, zod validators
+    ├── infrastructure/  # DTOs, adapters, payloads, repository implementations
+    └── ui/              # di, screens, components, hooks, stores
+```
+
+Dependency direction, never the reverse: `domain` → nothing, `infrastructure` → `domain`, `ui` → `domain` + `infrastructure`.
+
+**State:** stores live in `<feature>/ui/stores/<NameStore>/` (or `src/shared/stores/` when shared). Zustand stores persist through `zustandPersistentStorage` from `@/core/zustand`, keyed by a `MobileStorageModels.PERSISTENT_STORES` enum member; selectors stay at the call site. A context store is created with a `null` default and consumed only through `hooks/use<NameStore>.hook.ts`, which throws when the provider is missing. See §6 of `docs/architecture.md`.
+
+**Barrels** (an `index.ts` re-exporting more than one file) are only allowed in three places: a screen's `index.ts`, an SDK/library `index.ts` under `src/core/`, and a store's `index.ts`.
+
+**Comments:** only the `@toDo` / `@doc` / `@warn` better-comments tags, always in English. Invoke the `project-comments` skill before writing one.
+
+The architecture is only partially in place. Migrated, and usable as reference: `src/core/*`, `src/shared/stores/Session/`, and the screens in `src/auth/ui/screens/login/` and `src/home/ui/screens/home/`. Still missing everywhere: the `domain` and `infrastructure` layers and `ui/di`. The demo credentials in `src/auth/ui/screens/login/login.constants.ts` are a `@toDo` — authenticating belongs in an `auth` use case, not in the viewModel.
+
+`react-native-mmkv` and `react-native-nitro-modules` are native modules, so this app cannot run in Expo Go; use a development build.
+
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
+- Use **Expo Router** for all navigation. Routes live in `src/app/`, and `_layout.tsx` files define navigators. A route file only re-exports a screen: `export { default } from "@/<feature>/ui/screens/<nameScreen>";` — no logic, no UI, no non-route code in `src/app/`.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
+
+## Spec-driven workflow (OpenSpec)
+
+This project uses OpenSpec. Project-level constraints for OpenSpec artifacts live in `openspec/config.yaml` (`context` and `rules`); business rules live in `openspec/specs/<capability>/spec.md`.
+
+- Plan a change: `/opsx:propose "<description>"` → review the generated artifacts → `/opsx:apply` → `/opsx:archive`.
+- Architecture conventions belong in `docs/architecture.md`, not in a spec. Specs describe observable product behavior only.
 
 ## Building with EAS
 
