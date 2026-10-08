@@ -18,6 +18,7 @@ export const Colors = {
     tintText: "#ffffff",
     border: "#D8D9E0",
     danger: "#D93025",
+    success: "#1E8E3E",
   },
   dark: {
     text: "#ffffff",
@@ -29,6 +30,7 @@ export const Colors = {
     tintText: "#0A0A0A",
     border: "#3A3C40",
     danger: "#FF6B60",
+    success: "#5BD98A",
   },
 } as const;
 
