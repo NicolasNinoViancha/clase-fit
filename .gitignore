@@ -33,8 +33,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# env files — only the template is versioned
+.env*
+!.env.template
 
 # typescript
 *.tsbuildinfo
