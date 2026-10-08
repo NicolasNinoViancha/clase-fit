@@ -26,4 +26,8 @@ export namespace HttpClientModels {
       data: Request<TRequest>,
     ): Promise<TResponse>;
   }
+
+  export type FakeResponse<TRequest = any, TResponse = any> = (
+    request: Request<TRequest>,
+  ) => TResponse;
 }

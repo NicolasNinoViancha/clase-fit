@@ -1,9 +1,11 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 
+import { ENV_API_URL } from "@/core/config/env.constants";
+
 import { HttpClientError } from "./http.client.error";
 import { HttpClientModels } from "./http.client.models";
 
-class HttpClient implements HttpClientModels.HttpClient {
+export class HttpClient implements HttpClientModels.HttpClient {
   private _fetchInstance: AxiosInstance;
   private readonly _TIME_OUT = 5000;
 
@@ -24,6 +26,10 @@ class HttpClient implements HttpClientModels.HttpClient {
     throw new HttpClientError({ message: error?.message });
   }
 
+  private _makeUrl(url: string): string {
+    return `${ENV_API_URL}${url}`;
+  }
+
   async request<TResponse = any, TResquest = HttpClientModels.ParamsRequest>({
     url,
     method,
@@ -34,7 +40,7 @@ class HttpClient implements HttpClientModels.HttpClient {
     validateStatus,
   }: HttpClientModels.Request<TResquest>): Promise<TResponse> {
     const response = await this._fetchInstance.request({
-      url,
+      url: this._makeUrl(url),
       method,
       data,
       headers,
@@ -45,5 +51,3 @@ class HttpClient implements HttpClientModels.HttpClient {
     return response.data;
   }
 }
-
-export default new HttpClient();
