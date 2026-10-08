@@ -7,7 +7,7 @@ import { ThemedText } from "@/shared/components/themed-text";
 import { ThemedView } from "@/shared/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/shared/constants/theme";
 
-import { useLoginViewModel } from "./hooks/login.viewModel.hook";
+import { useLoginViewModel } from "./hooks/useLoginViewModel.hook";
 import { DEMO_CREDENTIALS } from "./login.constants";
 
 export default function LoginScreen() {
