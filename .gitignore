@@ -44,3 +44,10 @@ example
 # generated native folders
 /ios
 /android
+
+# editor and tooling (local only)
+.claude/
+.vscode/
+
+# scratch
+.tmp/
