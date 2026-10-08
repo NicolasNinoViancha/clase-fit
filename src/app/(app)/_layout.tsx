@@ -7,7 +7,7 @@ export const unstable_settings = {
 export default function AppLayout() {
   return (
     <Stack>
-      <Stack.Screen name="home" options={{ title: "Inicio" }} />
+      <Stack.Screen name="home" options={{ title: "Home" }} />
     </Stack>
   );
 }

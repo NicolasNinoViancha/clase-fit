@@ -7,6 +7,7 @@ export namespace MobileStorageModels {
   //@doc: store keys, consumed by the zustand persist middleware
   export enum PERSISTENT_STORES {
     SESSION = "SESSION",
+    GYM_CLASSES = "GYM_CLASSES",
   }
 
   export type ALL_STORAGE_KEYS = STORAGE_KEYS | PERSISTENT_STORES;

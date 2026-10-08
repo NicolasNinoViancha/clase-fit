@@ -1,26 +1,61 @@
-import { StyleSheet } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ThemedButton } from "@/shared/components/themed-button";
-import { ThemedText } from "@/shared/components/themed-text";
 import { ThemedView } from "@/shared/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/shared/constants/theme";
 
+import { HomeHeader } from "./components/homeHeader.component";
+import { ScheduleError } from "./components/scheduleError.component";
+import { ScheduleLoading } from "./components/scheduleLoading.component";
+import { ScheduleSection } from "./components/scheduleSection.component";
 import { useHomeViewModel } from "./hooks/home.viewModel.hook";
 
 export default function HomeScreen() {
-  const { user, onSignOut } = useHomeViewModel();
+  const {
+    user,
+    sections,
+    isLoading,
+    isError,
+    hasGymClasses,
+    onSignOut,
+    onRetry,
+    onReserve,
+  } = useHomeViewModel();
+
+  const hasFailedWithNothingToShow = isError && !hasGymClasses;
+  const hasData = !isLoading && !hasFailedWithNothingToShow;
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
-        <ThemedView style={styles.content}>
-          <ThemedText type="subtitle">Hola, {user.fullName}</ThemedText>
-          <ThemedText themeColor="textSecondary">{user.email}</ThemedText>
-        </ThemedView>
-        <ThemedButton variant="secondary" onPress={onSignOut}>
-          Cerrar sesión
-        </ThemedButton>
+        <HomeHeader
+          fullName={user.fullName}
+          email={user.email}
+          onSignOut={onSignOut}
+        />
+
+        {isLoading && <ScheduleLoading />}
+
+        {hasFailedWithNothingToShow && (
+          <ScheduleError variant="screen" onRetry={onRetry} />
+        )}
+
+        {hasData && (
+          <ScrollView
+            contentContainerStyle={styles.schedule}
+            showsVerticalScrollIndicator={false}
+          >
+            {isError && <ScheduleError variant="banner" onRetry={onRetry} />}
+
+            {sections.map((section) => (
+              <ScheduleSection
+                key={section.dayOffset}
+                section={section}
+                onReserve={onReserve}
+              />
+            ))}
+          </ScrollView>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
@@ -37,9 +72,10 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth / 2,
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.four,
-    justifyContent: "space-between",
+    gap: Spacing.four,
   },
-  content: {
-    gap: Spacing.one,
+  schedule: {
+    gap: Spacing.four,
+    paddingBottom: Spacing.four,
   },
 });
