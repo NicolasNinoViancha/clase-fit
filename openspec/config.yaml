@@ -1,0 +1,169 @@
+schema: spec-driven
+
+# Project context
+# Constraints that guide OpenSpec artifacts and workflows. Everything here is
+# something an agent CANNOT infer by reading the current code, because the
+# codebase does not follow the target architecture yet.
+context: |
+  Expo (SDK 57) + React Native 0.86 + expo-router mobile app, TypeScript strict.
+  Package manager: npm. Import alias: `@/*` -> `./src/*`.
+
+  ARCHITECTURE: documented in `docs/architecture.md`. Read it in full before
+  writing design.md or tasks.md. It is binding for any change that touches
+  `src/`.
+
+  CRITICAL: the architecture is only partially in place. `docs/architecture.md`
+  describes the TARGET state, not the current one.
+
+  Already migrated — use these as reference implementations:
+  - `src/core/httpClient/`, `src/core/mobileStorage/`, `src/core/zustand/`
+  - `src/core/entities/Session.entity.ts`
+  - `src/shared/stores/Session/` — the canonical PERSISTED ZUSTAND store shape,
+    consumed through `src/shared/hooks/useSession.hook.ts`, which only re-exports
+    the store hook so that selectors (and `useShallow` when selecting several
+    fields) stay at the call site.
+
+  - `src/auth/ui/screens/login/` and `src/home/ui/screens/home/` — the
+    canonical screen shape (`index.ts` + `.screen.tsx` + `.models.ts` +
+    `hooks/*.viewModel.hook.ts`), instantiated from `src/app/` with a single
+    `export { default } from "@/<feature>/ui/screens/<name>";`.
+
+  NOT migrated — do NOT copy these patterns:
+  - No feature has a `domain` or `infrastructure` layer yet: there are no
+    entities under a feature, no repository contracts, no use cases, no
+    validators, no DTOs and no adapters anywhere. Only the `ui` layer exists,
+    for `auth` and `home`. The first feature change creates the rest.
+  - No `ui/di/` module exists yet, so no `<feature>ServiceModule` is wired.
+  - `src/auth/ui/screens/login/login.constants.ts` holds hardcoded demo
+    credentials and a fake session, consumed by the login viewModel and marked
+    with `@toDo`. Authenticating is NOT the viewModel's job: it belongs in
+    `auth/domain/useCases/signIn.useCase.ts` behind a repository, and the
+    session store only stores the resulting session. Any change touching login
+    must move it.
+
+  REACT-QUERY IS WIRED: `QueryClientProvider` is mounted in `src/app/_layout.tsx`
+  with the client from `src/core/config/query.client.ts` (staleTime 60s,
+  retry 1). Change those defaults there, not per hook, and do not create a
+  second QueryClient.
+
+  COMMENTS: only the `@toDo` / `@doc` / `@warn` better-comments tags, always in
+  English. The `project-comments` skill holds the full convention.
+
+  When a change touches an unmigrated piece, raise the migration explicitly in
+  the design instead of imitating what is there.
+
+  Non-negotiable structural rules (full detail and code templates live in
+  `docs/architecture.md`):
+  - Layers per feature: `src/<feature>/{domain,infrastructure,ui}`.
+  - Dependency direction: `domain` depends on nothing; `infrastructure` only on
+    `domain`; `ui` on `domain` and `infrastructure`. Never the reverse.
+  - `src/core/` = cross-feature entities, library config, SDK clients. No UI.
+  - `src/shared/` = UI shared across features (design system, hooks, utils, UI
+    models, theme).
+  - `src/app/` = navigators and screen re-exports only. No logic, no UI.
+  - Entities and DTOs are exposed as TS namespaces; the main model is named
+    `Entity` (domain) or `Dto` (backend). Prefer `interface` over `type`.
+  - Repository contracts follow CQRS: `Query` (reads) and `Write` (writes).
+  - One use case per file, repositories injected through the constructor, a
+    single `execute` method.
+  - Parameter validation with zod through a static
+    `<NameUseCase>Validator.validate` method.
+  - Repositories receive `core/httpClient` through the constructor and ALWAYS
+    return domain entities, never DTOs. Conversion belongs in
+    `infrastructure/adapters` (DTO -> Entity) and `infrastructure/payloads`
+    (Entity -> DTO).
+  - Screens consume their `viewModel` hook; `react-query` and the
+    `<feature>ServiceModule` from `ui/di` are only touched in
+    `ui/screens/*/hooks/<action>.hook.ts` or `ui/hooks/`.
+  - A barrel is an `index.ts` that re-exports more than one file. Barrels are
+    not allowed, with three exceptions only: a screen's `index.ts`, the
+    `index.ts` of an SDK or library implementation under `src/core/` (e.g.
+    `core/httpClient/index.ts`, `core/mobileStorage/index.ts`,
+    `core/zustand/index.ts`), and a store's `index.ts` under
+    `stores/<NameStore>/`. Everywhere else import the concrete file; do not add
+    an `index.ts` to `entities/`, `useCases/`, `repositories/`, `adapters/`,
+    `DTOs/`, `components/`, `hooks/` or `utils/`.
+  - Anything used by more than one screen moves up to `<feature>/ui/<type>/`;
+    anything used by more than one feature moves up to `src/shared/`.
+
+  STATE MANAGEMENT (section 6 of `docs/architecture.md` has the full templates):
+  - Stores live in `<feature>/ui/stores/<NameStore>/`, or
+    `src/shared/stores/<NameStore>/` when more than one feature consumes them.
+    One PascalCase folder per store.
+  - Context API store files: `index.ts` (exports provider + context),
+    `<NameStore>.provider.tsx`, `<NameStore>.context.ts`,
+    `<nameStore>.models.ts`, `<nameStore>.constants.ts`. Provider and context
+    are default exports; the provider is an arrow-function component seeded from
+    the `*_INITIAL_STATE` constant.
+  - The models namespace is `<Name>ContextModels` and must expose
+    `PropsContext`, `PropsProvider` (always `PropsWithChildren`) and `State`.
+  - A context is ALWAYS created with a `null` default and typed
+    `PropsContext | null`. Never seed it with a stub object — that turns a
+    missing provider into a silent no-op.
+  - A context store is never consumed with `use(Context)` at the call site. Each
+    store gets `<feature|shared>/hooks/use<NameStore>.hook.ts`, which reads the
+    context, throws `use<X> must be used inside <X>Provider` when it is null,
+    and returns it. Screens, components and viewModels import that hook, never
+    the context.
+  - Zustand store files: `index.ts`, `<nameStore>.store.ts`,
+    `<nameStore>.models.ts`, `<nameStore>.constants.ts`. The models namespace is
+    `<Name>StoreModels` and exports `State` and `Store` (`State & Action`);
+    `Action` stays internal to the namespace and is declared with methods.
+  - Persisted zustand stores use `zustandPersistentStorage` from
+    `@/core/zustand` with zustand's `persist`. Never write a second storage
+    adapter.
+  - Storage keys are typed enums in `MobileStorageModels`: `STORAGE_KEYS` for
+    individual values, `PERSISTENT_STORES` for zustand store keys. Never pass a
+    raw string to storage. Both must be STRING enums
+    (`EXAMPLE = "EXAMPLE"`) — MMKV is keyed by `string` and a numeric enum does
+    not typecheck against it. `STORAGE_KEYS` still holds only the `EXAMPLE`
+    placeholder: replace it with real keys instead of adding alongside it.
+    `PERSISTENT_STORES` already holds `SESSION`.
+
+  INSTALLED AND AVAILABLE: `axios` 1.10.0, `zod` 4.6.5,
+  `@tanstack/react-query` 5.104.1, `zustand` 5.0.7, `react-native-mmkv` 4.3.2,
+  `react-native-nitro-modules` 0.36.1. Add new packages only with
+  `npx expo install <pkg>`, never `npm install`.
+
+  NATIVE BUILD: `react-native-mmkv` and `react-native-nitro-modules` are native
+  modules, so Expo Go cannot run this app — a development build is required
+  (`npx expo run:ios` / `npx expo run:android`). Factor that into tasks that
+  touch storage.
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Always state what is out of scope.
+    - Name the affected feature under `src/<feature>/` and say whether it is new
+      or existing.
+  specs:
+    - One SHALL per requirement; split multi-clause statements.
+    - Requirements describe observable product behavior, not folder structure or
+      technical decisions — those belong in design.md.
+  design:
+    - State the exact file tree to create or modify, with full paths under
+      `src/`, before explaining the approach.
+    - List entities, DTOs, repository contracts, use cases and adapters by file
+      name.
+    - Justify any deviation from `docs/architecture.md` explicitly; if there is
+      no deviation, do not mention it.
+    - If the change requires migrating pre-existing code that does not follow the
+      architecture, treat it as part of the design, not as future debt.
+  tasks:
+    - "Order tasks inside-out: domain, then infrastructure, then ui/di, then
+      ui/screens, and finally the re-export in `src/app/`."
+    - One task per file to create or modify, with its path.
+    - Make `npx expo lint` and `npx tsc --noEmit` the final task.
+
+# Per-operation guidance
+operations:
+  apply:
+    guidance:
+      - Never write an import that violates the dependency direction. If a task
+        seems to require one, stop and report it.
+      - Before considering the implementation done, run `npx expo lint` and
+        `npx tsc --noEmit` and report the output.
+  archive:
+    guidance:
+      - "Summarize where the architecture stands after the change: which
+        features were touched and which pieces still need migrating."
