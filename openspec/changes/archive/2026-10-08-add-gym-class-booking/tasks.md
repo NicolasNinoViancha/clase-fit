@@ -210,7 +210,7 @@
 
 ## 8. Verification
 
-- [ ] 8.1 On a development build (`npx expo run:ios` or
+- [x] 8.1 On a development build (`npx expo run:ios` or
       `npx expo run:android` — MMKV rules out Expo Go), clear the app's storage
       first so no record predating `bookedUserIds` is left in the
       `GYM_CLASSES` entry, sign in again, then walk the five outcomes
