@@ -40,7 +40,7 @@ src/
 
 Dependency direction, never the reverse: `domain` → nothing, `infrastructure` → `domain`, `ui` → `domain` + `infrastructure`.
 
-**State:** stores live in `<feature>/ui/stores/<NameStore>/` (or `src/shared/stores/` when shared). Zustand stores persist through `zustandPersistentStorage` from `@/core/zustand`, keyed by a `MobileStorageModels.PERSISTENT_STORES` enum member; selectors stay at the call site. A context store is created with a `null` default and consumed only through `hooks/use<NameStore>.hook.ts`, which throws when the provider is missing. See §6 of `docs/architecture.md`.
+**State:** stores live in `<feature>/ui/stores/<NameStore>/` (or `src/shared/stores/` when shared). Zustand stores persist through `zustandPersistentStorage` from `@/core/zustand`, keyed by a `MobileStorageModels.PERSISTENT_STORES` enum member; selectors stay at the call site. A context store is created with a `null` default and consumed only through `hooks/use<NameStore>.hook.ts`, which throws when the provider is missing. Every hook file name starts with `use`. See §6 of `docs/architecture.md`.
 
 **Barrels** (an `index.ts` re-exporting more than one file) are only allowed in three places: a screen's `index.ts`, an SDK/library `index.ts` under `src/core/`, and a store's `index.ts`.
 

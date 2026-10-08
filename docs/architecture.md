@@ -243,20 +243,24 @@ export const <feature>ServiceModule = {
 index.ts                                  # exports the component; consumed by src/app/
 <nameScreen>.screen.tsx                   # overall screen template; consumes the viewModel
 <nameScreen>.models.ts                    # screen-level models (TS namespace)
-hooks/<nameScreen>.viewModel.hook.ts      # screen logic; exposes methods and state
-hooks/<action>.hook.ts                    # consumes the di service via react-query
+hooks/use<NameScreen>ViewModel.hook.ts    # screen logic; exposes methods and state
+hooks/use<Action>.hook.ts                 # consumes the di service via react-query
 components/<nameComponent>.component.tsx  # one component of the screen layout
 ```
 
 - A screen never calls use cases directly; it consumes its `viewModel`.
-- `<action>.hook.ts` files are the only place that touches `react-query` and the
-  `<feature>ServiceModule`.
+- `use<Action>.hook.ts` files are the only place that touches `react-query` and
+  the `<feature>ServiceModule`.
+- **Every hook file name starts with `use`**, matching the hook it exports:
+  `useHomeViewModel.hook.ts`, `useBookGymClass.hook.ts`, `useBanner.hook.ts`.
+  The rule holds everywhere hooks live — a screen's `hooks/`, a feature's
+  `ui/hooks/` and `src/shared/hooks/`.
 
 ### Promoting shared implementations
 
 If an implementation is used by **more than one screen**, move it up to the
-feature level: `<feature>/ui/<type>/`. Example: `myHook.hook.ts` used by
-`screen_1` and `screen_2` belongs in `<feature>/ui/hooks/myHook.hook.ts`.
+feature level: `<feature>/ui/<type>/`. Example: `useMyHook.hook.ts` used by
+`screen_1` and `screen_2` belongs in `<feature>/ui/hooks/useMyHook.hook.ts`.
 
 If it is used by **more than one feature**, move it up to `src/shared/`.
 
@@ -482,8 +486,11 @@ core/httpClient/
 ├── http.client.error.ts
 └── fake/                      # simulated client, used while IS_DEV_MODE is on
     ├── http.client.fake.ts
-    ├── fake.responses.ts      # endpoint → response function registry
-    └── fake.<endpoint>.ts     # one file per faked endpoint
+    ├── fake.responses.ts          # url → response function registry
+    └── <feature>/                 # one folder per feature, mirroring src/
+        └── <resource>/            # one folder per resource of that feature
+            ├── <resource>.data.ts # the in-memory records its handlers share
+            └── fake.<action>.ts   # one file per faked endpoint
 ```
 
 Neither class self-instantiates. `http.client.factory.ts` picks the transport
@@ -612,10 +619,27 @@ export class HttpClientError extends Error {
 resolves a request through the function registered for its url in
 `fake.responses.ts` instead of reaching the network. Rules:
 
-- One file per endpoint, `fake.<endpoint>.ts`, exporting a
-  `HttpClientModels.FakeResponse`. It **validates the request** (method, params,
-  body) and throws `HttpClientError` on invalid input, so a consumer cannot tell
-  the two transports apart.
+- **Grouped by feature first**, one folder per `src/<feature>/` that owns
+  endpoints — `home/`, `auth/` — so the fake reads the way the rest of `src/`
+  does and a feature's endpoints are found where that feature is.
+- **Then by resource**, one folder named after it holding every endpoint that
+  resource serves: `home/gymClasses/`, `auth/users/`. A feature or resource with
+  a single endpoint still gets its folder, so adding the second one never means
+  moving the first.
+- One file per endpoint, `<feature>/<resource>/fake.<action>.ts`, exporting a
+  single `HttpClientModels.FakeResponse` named `<action>Response`. It
+  **validates the request** (method, params, body) and throws `HttpClientError`
+  on invalid input, so a consumer cannot tell the two transports apart. Two
+  endpoints never share a file, however small the second one is.
+- The records live in `<resource>/<resource>.data.ts`, never inside a handler.
+  Handlers that mutate them — a write endpoint — are the reason: the state has
+  to be reachable from each of them, and keeping it in its own file is what
+  makes the mutation visible at a glance.
+- The folder names are the only place `fake/` names a feature. Nothing under
+  `src/core/` may **import** from `src/<feature>/` (§2), so the registry still
+  pins each url as a literal.
+- No `index.ts` in these folders. `fake.responses.ts` imports each concrete
+  file, per the barrel rule in §2.
 - A fake response returns the **DTO shape**, never a domain entity: the adapters
   downstream must run exactly as they do in production.
 - An url with no registered response throws — the fake never resolves silently.
@@ -682,8 +706,8 @@ longer recommended; read the variable directly instead.
 ```txt
 src/app/(app)/classes.tsx
   └── <feature>/ui/screens/classList/classList.screen.tsx
-        └── hooks/classList.viewModel.hook.ts
-              └── hooks/getClasses.hook.ts            (react-query)
+        └── hooks/useClassListViewModel.hook.ts
+              └── hooks/useGetClasses.hook.ts         (react-query)
                     └── ui/di → classesServiceModule.queries
                           └── domain/useCases/getClasses.useCase.ts
                                 ├── validators/getClasses.validator.ts  (zod)
@@ -705,8 +729,9 @@ src/app/(app)/classes.tsx
       screen's `index.ts` and an SDK/library `index.ts` under `src/core/`.
 - [ ] Entities and DTOs exposed as namespaces, main model named `Entity`/`Dto`.
 - [ ] `interface` instead of `type` wherever possible.
-- [ ] `react-query` only inside `ui/screens/*/hooks/<action>.hook.ts` or
+- [ ] `react-query` only inside `ui/screens/*/hooks/use<Action>.hook.ts` or
       `ui/hooks/`.
+- [ ] Every hook file name starts with `use`.
 - [ ] Every context store defaults to `null` and is consumed only through
       `hooks/use<NameStore>.hook.ts`, which throws when the provider is missing.
 - [ ] Zustand store models export `State` and `Store`; `Action` stays internal.

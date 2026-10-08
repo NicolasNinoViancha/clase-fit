@@ -25,7 +25,7 @@ context: |
 
   - `src/auth/ui/screens/login/` and `src/home/ui/screens/home/` — the
     canonical screen shape (`index.ts` + `.screen.tsx` + `.models.ts` +
-    `hooks/*.viewModel.hook.ts`), instantiated from `src/app/` with a single
+    `hooks/use<Name>ViewModel.hook.ts`), instantiated from `src/app/` with a single
     `export { default } from "@/<feature>/ui/screens/<name>";`.
 
   NOT migrated — do NOT copy these patterns:
@@ -74,7 +74,8 @@ context: |
     (Entity -> DTO).
   - Screens consume their `viewModel` hook; `react-query` and the
     `<feature>ServiceModule` from `ui/di` are only touched in
-    `ui/screens/*/hooks/<action>.hook.ts` or `ui/hooks/`.
+    `ui/screens/*/hooks/use<Action>.hook.ts` or `ui/hooks/`. Every hook file
+    name starts with `use`.
   - A barrel is an `index.ts` that re-exports more than one file. Barrels are
     not allowed, with three exceptions only: a screen's `index.ts`, the
     `index.ts` of an SDK or library implementation under `src/core/` (e.g.
